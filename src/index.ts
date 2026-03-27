@@ -36,7 +36,7 @@ async function main() {
 
 
 // --- Command Line Interface ---
-async function runAuthServer(accountId?: string): Promise<void> {
+async function runAuthServer(accountId?: string, readOnly = false): Promise<void> {
   // Set account mode if specified
   if (accountId) {
     // Validate account ID format
@@ -54,7 +54,7 @@ async function runAuthServer(accountId?: string): Promise<void> {
     const oauth2Client = await initializeOAuth2Client();
 
     // Create and start the auth server
-    const authServerInstance = new AuthServer(oauth2Client);
+    const authServerInstance = new AuthServer(oauth2Client, readOnly);
 
     // Start with browser opening (true by default)
     const success = await authServerInstance.start(true);
@@ -134,10 +134,11 @@ function showVersion(): void {
 export { main, runAuthServer };
 
 // Parse CLI arguments
-function parseCliArgs(): { command: string | undefined; accountId: string | undefined } {
+function parseCliArgs(): { command: string | undefined; accountId: string | undefined; readOnly: boolean } {
   const args = process.argv.slice(2);
   let command: string | undefined;
   let accountId: string | undefined;
+  let readOnly = process.env.READ_ONLY === 'true';
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -155,7 +156,11 @@ function parseCliArgs(): { command: string | undefined; accountId: string | unde
     }
 
     // Skip other flags
-    if (arg === '--debug' || arg === '--read-only') {
+    if (arg === '--debug') {
+      continue;
+    }
+    if (arg === '--read-only') {
+      readOnly = true;
       continue;
     }
 
@@ -172,15 +177,15 @@ function parseCliArgs(): { command: string | undefined; accountId: string | unde
     }
   }
 
-  return { command, accountId };
+  return { command, accountId, readOnly };
 }
 
 // CLI logic here (run always)
-const { command, accountId } = parseCliArgs();
+const { command, accountId, readOnly } = parseCliArgs();
 
 switch (command) {
   case "auth":
-    runAuthServer(accountId).catch((error) => {
+    runAuthServer(accountId, readOnly).catch((error) => {
       process.stderr.write(`Authentication failed: ${error}\n`);
       process.exit(1);
     });
