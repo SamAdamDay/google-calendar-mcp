@@ -21,6 +21,9 @@ interface PendingAuthFlow {
   state: string;
 }
 
+export const CALENDAR_SCOPE_FULL = 'https://www.googleapis.com/auth/calendar';
+export const CALENDAR_SCOPE_READONLY = 'https://www.googleapis.com/auth/calendar.readonly';
+
 export class AuthServer {
   private baseOAuth2Client: OAuth2Client; // Used by TokenManager for validation/refresh
   private flowOAuth2Client: OAuth2Client | null = null; // Used specifically for the auth code flow
@@ -32,11 +35,13 @@ export class AuthServer {
   private mcpToolTimeout: ReturnType<typeof setTimeout> | null = null; // Timeout for MCP tool auth flow
   private autoShutdownOnSuccess = false; // Whether to auto-shutdown after successful auth
   private pendingAuthFlow: PendingAuthFlow | null = null; // PKCE + state for current OAuth flow
+  private readOnly: boolean;
 
-  constructor(oauth2Client: OAuth2Client) {
+  constructor(oauth2Client: OAuth2Client, readOnly = false) {
     this.baseOAuth2Client = oauth2Client;
     this.tokenManager = new TokenManager(oauth2Client);
     this.portRange = { start: 3500, end: 3505 };
+    this.readOnly = readOnly;
   }
 
   /**
@@ -62,7 +67,7 @@ export class AuthServer {
     }
     return client.generateAuthUrl({
       access_type: 'offline',
-      scope: ['https://www.googleapis.com/auth/calendar'],
+      scope: [this.readOnly ? CALENDAR_SCOPE_READONLY : CALENDAR_SCOPE_FULL],
       prompt: 'consent',
       code_challenge_method: CodeChallengeMethod.S256,
       code_challenge: this.pendingAuthFlow.codeChallenge,

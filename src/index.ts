@@ -106,18 +106,21 @@ Commands:
   help               Show this help message
 
 Options:
+  --read-only              Use read-only OAuth scope and disable write tools
   --enable-tools <list>   Comma-separated list of tools to enable (whitelist)
 
 Examples:
   npx @cocal/google-calendar-mcp auth              # Authenticate default account
   npx @cocal/google-calendar-mcp auth work         # Authenticate "work" account
   npx @cocal/google-calendar-mcp start
+  npx @cocal/google-calendar-mcp start --read-only
   npx @cocal/google-calendar-mcp start --enable-tools list-events,create-event,get-current-time
   npx @cocal/google-calendar-mcp
 
 Environment Variables:
   GOOGLE_OAUTH_CREDENTIALS    Path to OAuth credentials file
   GOOGLE_ACCOUNT_MODE         Account ID to use (alternative to auth argument)
+  READ_ONLY                   Use read-only mode (true/false)
   ENABLED_TOOLS               Comma-separated list of tools to enable
 `);
 }
@@ -152,7 +155,7 @@ function parseCliArgs(): { command: string | undefined; accountId: string | unde
     }
 
     // Skip other flags
-    if (arg === '--debug') {
+    if (arg === '--debug' || arg === '--read-only') {
       continue;
     }
 

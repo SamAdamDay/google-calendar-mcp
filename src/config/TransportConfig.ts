@@ -8,6 +8,7 @@ export interface ServerConfig {
   transport: TransportConfig;
   debug?: boolean;
   enabledTools?: string[];
+  readOnly?: boolean;
 }
 
 function parseEnabledTools(value: string | undefined, source: string): string[] | undefined {
@@ -33,7 +34,8 @@ export function parseArgs(args: string[]): ServerConfig {
       host: process.env.HOST || '127.0.0.1'
     },
     debug: process.env.DEBUG === 'true' || false,
-    enabledTools: parseEnabledTools(process.env.ENABLED_TOOLS, 'ENABLED_TOOLS')
+    enabledTools: parseEnabledTools(process.env.ENABLED_TOOLS, 'ENABLED_TOOLS'),
+    readOnly: process.env.READ_ONLY === 'true' || false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -51,6 +53,9 @@ export function parseArgs(args: string[]): ServerConfig {
         break;
       case '--host':
         config.transport.host = args[++i];
+        break;
+      case '--read-only':
+        config.readOnly = true;
         break;
       case '--debug':
         config.debug = true;
@@ -73,6 +78,7 @@ Options:
   --transport <type>        Transport type: stdio (default) | http
   --port <number>          Port for HTTP transport (default: 3000)
   --host <string>          Host for HTTP transport (default: 127.0.0.1)
+  --read-only              Use read-only OAuth scope and disable write tools
   --debug                  Enable debug logging
   --enable-tools <list>    Comma-separated list of tools to enable (whitelist)
   --help                   Show this help message
@@ -81,6 +87,7 @@ Environment Variables:
   TRANSPORT               Transport type: stdio | http
   PORT                   Port for HTTP transport
   HOST                   Host for HTTP transport
+  READ_ONLY              Use read-only mode (true/false)
   DEBUG                  Enable debug logging (true/false)
   ENABLED_TOOLS          Comma-separated list of tools to enable
 

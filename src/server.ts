@@ -48,7 +48,7 @@ export class GoogleCalendarMcpServer {
     // 1. Initialize Authentication (but don't block on it)
     this.oauth2Client = await initializeOAuth2Client();
     this.tokenManager = new TokenManager(this.oauth2Client);
-    this.authServer = new AuthServer(this.oauth2Client);
+    this.authServer = new AuthServer(this.oauth2Client, this.config.readOnly);
 
     // 2. Load all authenticated accounts
     this.accounts = await this.tokenManager.loadAllAccounts();
@@ -217,7 +217,8 @@ export class GoogleCalendarMcpServer {
         const httpHandler = new HttpTransportHandler(
           this.server,
           httpConfig,
-          this.tokenManager
+          this.tokenManager,
+          this.config.readOnly
         );
         await httpHandler.connect();
         break;

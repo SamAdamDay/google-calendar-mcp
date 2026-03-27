@@ -774,6 +774,15 @@ interface ToolDefinition {
 }
 
 
+/** Tools that require write access to Google Calendar */
+const WRITE_TOOLS = new Set([
+  'create-event',
+  'create-events',
+  'update-event',
+  'delete-event',
+  'respond-to-event',
+]);
+
 export class ToolRegistry {
   private static extractSchemaShape(schema: z.ZodType<any>): any {
     const schemaAny = schema as any;
@@ -1029,13 +1038,24 @@ export class ToolRegistry {
         if (!enabledSet.has(tool.name)) {
           continue;
         }
+        if (config?.readOnly && WRITE_TOOLS.has(tool.name)) {
+          continue;
+        }
         this.registerSingleTool(server, tool, executeWithHandler);
       }
       return;
     }
 
-    // No filtering - register all tools
+    // Filter write tools in read-only mode
+    if (config?.readOnly) {
+      const excluded = this.tools.filter(t => WRITE_TOOLS.has(t.name)).map(t => t.name);
+      process.stderr.write(`Read-only mode: disabled write tools (${excluded.join(', ')})\n`);
+    }
+
     for (const tool of this.tools) {
+      if (config?.readOnly && WRITE_TOOLS.has(tool.name)) {
+        continue;
+      }
       this.registerSingleTool(server, tool, executeWithHandler);
     }
   }

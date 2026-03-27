@@ -100,6 +100,95 @@ describe('Tool Filtering', () => {
     });
   });
 
+  describe('readOnly config', () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = { ...originalEnv };
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it('should parse --read-only flag', () => {
+      const config = parseArgs(['--read-only']);
+      expect(config.readOnly).toBe(true);
+    });
+
+    it('should parse READ_ONLY environment variable', () => {
+      process.env.READ_ONLY = 'true';
+      const config = parseArgs([]);
+      expect(config.readOnly).toBe(true);
+    });
+
+    it('should default readOnly to false', () => {
+      const config = parseArgs([]);
+      expect(config.readOnly).toBe(false);
+    });
+
+    it('should register only read-only tools when readOnly is true', () => {
+      const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
+      const server = new McpServer({ name: 'test', version: '1.0.0' });
+      const registeredTools: string[] = [];
+
+      // Spy on server.registerTool to capture registered tool names
+      const originalRegisterTool = server.registerTool.bind(server);
+      server.registerTool = (name: string, ...args: any[]) => {
+        registeredTools.push(name);
+        return originalRegisterTool(name, ...args);
+      };
+
+      const executeWithHandler = async () => ({ content: [{ type: 'text' as const, text: '' }] });
+
+      ToolRegistry.registerAll(server, executeWithHandler, {
+        transport: { type: 'stdio' },
+        readOnly: true
+      });
+
+      // Write tools should not be registered
+      expect(registeredTools).not.toContain('create-event');
+      expect(registeredTools).not.toContain('create-events');
+      expect(registeredTools).not.toContain('update-event');
+      expect(registeredTools).not.toContain('delete-event');
+      expect(registeredTools).not.toContain('respond-to-event');
+
+      // Read tools should still be registered
+      expect(registeredTools).toContain('list-events');
+      expect(registeredTools).toContain('list-calendars');
+      expect(registeredTools).toContain('search-events');
+      expect(registeredTools).toContain('get-event');
+      expect(registeredTools).toContain('list-colors');
+      expect(registeredTools).toContain('get-freebusy');
+      expect(registeredTools).toContain('get-current-time');
+    });
+
+    it('should combine readOnly with enabledTools filtering', () => {
+      const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
+      const server = new McpServer({ name: 'test', version: '1.0.0' });
+      const registeredTools: string[] = [];
+
+      const originalRegisterTool = server.registerTool.bind(server);
+      server.registerTool = (name: string, ...args: any[]) => {
+        registeredTools.push(name);
+        return originalRegisterTool(name, ...args);
+      };
+
+      const executeWithHandler = async () => ({ content: [{ type: 'text' as const, text: '' }] });
+
+      // Enable create-event and list-events, but with readOnly mode
+      ToolRegistry.registerAll(server, executeWithHandler, {
+        transport: { type: 'stdio' },
+        readOnly: true,
+        enabledTools: ['create-event', 'list-events']
+      });
+
+      // create-event should be filtered out by readOnly even though it's in enabledTools
+      expect(registeredTools).not.toContain('create-event');
+      expect(registeredTools).toContain('list-events');
+    });
+  });
+
   describe('ToolRegistry.getAvailableToolNames', () => {
     it('should return all tool names', () => {
       const toolNames = ToolRegistry.getAvailableToolNames();

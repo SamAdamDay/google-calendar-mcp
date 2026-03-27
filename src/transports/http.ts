@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import http from "http";
 import { TokenManager } from "../auth/tokenManager.js";
+import { CALENDAR_SCOPE_FULL, CALENDAR_SCOPE_READONLY } from "../auth/server.js";
 import { CalendarRegistry } from "../services/CalendarRegistry.js";
 import { renderAuthSuccess, renderAuthError, loadWebFile } from "../web/templates.js";
 
@@ -45,15 +46,18 @@ export class HttpTransportHandler {
   private server: McpServer;
   private config: HttpTransportConfig;
   private tokenManager: TokenManager;
+  private readOnly: boolean;
 
   constructor(
     server: McpServer,
     config: HttpTransportConfig = {},
-    tokenManager: TokenManager
+    tokenManager: TokenManager,
+    readOnly = false
   ) {
     this.server = server;
     this.config = config;
     this.tokenManager = tokenManager;
+    this.readOnly = readOnly;
   }
 
   /**
@@ -77,7 +81,7 @@ export class HttpTransportHandler {
   private generateOAuthUrl(client: import('google-auth-library').OAuth2Client): string {
     return client.generateAuthUrl({
       access_type: 'offline',
-      scope: ['https://www.googleapis.com/auth/calendar'],
+      scope: [this.readOnly ? CALENDAR_SCOPE_READONLY : CALENDAR_SCOPE_FULL],
       prompt: 'consent'
     });
   }
